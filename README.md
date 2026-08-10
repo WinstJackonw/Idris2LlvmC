@@ -33,6 +33,11 @@ package hard-codes the local source or build paths.
 The package is self-contained apart from Idris `base`; no network-fetched Idris
 FFI helper package is required.
 
+For Nix consumers, the flake exports the installed Idris library and its native
+shim as both `packages.<system>.default` and `packages.<system>.idris2-llvm-c`. A
+downstream flake can pass `idris2-llvm-c.packages.${system}.default` in its
+`idrisLibraries` list.
+
 ## Use
 
 Import `LLVM` for the safe API or `LLVM.Raw` for the direct C-shaped API. The
