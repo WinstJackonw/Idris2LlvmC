@@ -1,0 +1,10 @@
+/build/
+/lib/
+/support/build/
+/tests/build/
+*.ibc
+*.ttc
+*.o
+*.so
+*.dylib
+

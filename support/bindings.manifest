@@ -1,0 +1,9 @@
+# Idris module             LLVM C headers
+LLVM.Raw.Core              Core.h
+LLVM.Raw.Analysis          Analysis.h
+LLVM.Raw.Bitcode           BitReader.h BitWriter.h
+LLVM.Raw.IRReader          IRReader.h
+LLVM.Raw.Linker            Linker.h
+LLVM.Raw.Passes            Error.h Transforms/PassBuilder.h
+LLVM.Raw.Target            Target.h TargetMachine.h
+LLVM.Raw.DebugInfo         DebugInfo.h

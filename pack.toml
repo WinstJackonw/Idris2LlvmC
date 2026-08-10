@@ -1,0 +1,4 @@
+collection = "nightly-260726"
+
+[install]
+whitelist = [ "llvm-c" ]

@@ -1,0 +1,40 @@
+package llvm-c
+version = 0.1.0
+authors = "Idris LLVM backend contributors"
+brief = "Idris 2 bindings for the LLVM 22 C API"
+license = "Apache-2.0 WITH LLVM-exception"
+readme = "README.md"
+
+langversion >= 0.8.0
+
+depends = base >= 0.8.0
+
+sourcedir = "src"
+
+modules = LLVM.Raw.Types
+        , LLVM.Raw.Enums
+        , LLVM.Raw.Core
+        , LLVM.Raw.Analysis
+        , LLVM.Raw.Bitcode
+        , LLVM.Raw.IRReader
+        , LLVM.Raw.Linker
+        , LLVM.Raw.Passes
+        , LLVM.Raw.Target
+        , LLVM.Raw.DebugInfo
+        , LLVM.Raw
+        , LLVM.Internal.Array
+        , LLVM.Internal.String
+        , LLVM.Error
+        , LLVM.Core
+        , LLVM.Analysis
+        , LLVM.IRReader
+        , LLVM.Bitcode
+        , LLVM.Linker
+        , LLVM.Passes
+        , LLVM.Target
+        , LLVM.DebugInfo
+        , LLVM
+
+prebuild = "support/build.sh"
+preinstall = "support/install.sh"
+postclean = "support/clean.sh"
