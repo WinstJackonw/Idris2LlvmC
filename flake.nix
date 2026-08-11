@@ -20,6 +20,7 @@
         in
         rec {
           llvm-c = pkgs.callPackage ./package.nix { };
+          idris2-llvm-c = llvm-c;
           default = llvm-c;
         });
 

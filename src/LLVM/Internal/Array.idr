@@ -4,28 +4,28 @@ import LLVM.Raw.Types
 
 %default total
 
-llvm : String -> String
-llvm name = "C:idris2_llvm_" ++ name ++ ",libidris2_llvm"
+shim : String -> String
+shim name = "C:idris2_llvm_" ++ name ++ ",libidris2_llvm"
 
-%foreign (llvm "ptr_array_new")
+%foreign (shim "ptr_array_new")
 prim__ptrArrayNew : Bits32 -> PrimIO AnyPtr
 
-%foreign (llvm "ptr_array_set")
+%foreign (shim "ptr_array_set")
 prim__ptrArraySet : AnyPtr -> Bits32 -> AnyPtr -> PrimIO ()
 
-%foreign (llvm "ptr_array_get")
+%foreign (shim "ptr_array_get")
 prim__ptrArrayGet : AnyPtr -> Bits32 -> PrimIO AnyPtr
 
-%foreign (llvm "ptr_array_free")
+%foreign (shim "ptr_array_free")
 prim__ptrArrayFree : AnyPtr -> PrimIO ()
 
-%foreign (llvm "i64_array_new")
+%foreign (shim "i64_array_new")
 prim__i64ArrayNew : Bits32 -> PrimIO AnyPtr
 
-%foreign (llvm "i64_array_set")
+%foreign (shim "i64_array_set")
 prim__i64ArraySet : AnyPtr -> Bits32 -> Int64 -> PrimIO ()
 
-%foreign (llvm "i64_array_free")
+%foreign (shim "i64_array_free")
 prim__i64ArrayFree : AnyPtr -> PrimIO ()
 
 fillPtrs : AnyPtr -> Bits32 -> List AnyPtr -> IO ()

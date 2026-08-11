@@ -3,13 +3,15 @@
   cmake,
   idris2Packages,
   llvmPackages_22,
+  stdenv,
 }:
 
 let
   llvm = llvmPackages_22.llvm;
+  llvmSharedSuffix = if stdenv.hostPlatform.isDarwin then ".dylib" else ".so";
 
   package = idris2Packages.buildIdris {
-    ipkgName = "idris2-llvm-c";
+    ipkgName = "llvm-c";
     version = "0.1.0";
     src = lib.fileset.toSource {
       root = ./.;
@@ -41,23 +43,31 @@ let
     dontUseCmakeConfigure = true;
 
     # Idris loads %foreign libraries at runtime instead of linking them into
-    # downstream executables. Use the exported package's absolute shim path so
-    # those executables retain the package in their Nix closure and can run
-    # without setting LD_LIBRARY_PATH or DYLD_LIBRARY_PATH themselves.
+    # downstream executables. Use absolute package paths for both the tiny shim
+    # and monolithic libLLVM so executables retain the complete Nix closure.
     postPatch = ''
       grep -rlZ ',libidris2_llvm"' src | while IFS= read -r -d "" source_file; do
         substituteInPlace "$source_file" \
           --replace-fail ',libidris2_llvm"' ",$out/lib/libidris2_llvm\""
       done
+      grep -rlZ ',libLLVM"' src | while IFS= read -r -d "" source_file; do
+        substituteInPlace "$source_file" \
+          --replace-fail ',libLLVM"' ",$out/lib/libLLVM\""
+      done
     '';
   };
 in
 (package.library { withSource = true; }).overrideAttrs (oldAttrs: {
+  pname = "idris2-llvm-c";
+  name = "idris2-llvm-c-${oldAttrs.version}";
+
   postInstall = (oldAttrs.postInstall or "") + ''
     package_dir="$(idris2 --dump-installdir llvm-c.ipkg)"
     mkdir -p "$out/include" "$package_dir/lib"
 
     install -m 0755 lib/libidris2_llvm "$out/lib/"
+    ln -s "$(readlink lib/libLLVM)" "$out/lib/libLLVM"
+    ln -s "$(readlink lib/libLLVM)" "$out/lib/libLLVM${llvmSharedSuffix}"
     for shared_library in lib/libidris2_llvm.so lib/libidris2_llvm.dylib; do
       if [ -f "$shared_library" ]; then
         install -m 0755 "$shared_library" "$out/lib/"
@@ -66,6 +76,8 @@ in
     install -m 0644 include/idris2_llvm.h "$out/include/"
 
     ln -s "$out/lib/libidris2_llvm" "$package_dir/lib/"
+    ln -s "$out/lib/libLLVM" "$package_dir/lib/"
+    ln -s "$out/lib/libLLVM${llvmSharedSuffix}" "$package_dir/lib/"
     for shared_library in "$out/lib/libidris2_llvm.so" "$out/lib/libidris2_llvm.dylib"; do
       if [ -f "$shared_library" ]; then
         ln -s "$shared_library" "$package_dir/lib/"

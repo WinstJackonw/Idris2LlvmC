@@ -6,11 +6,10 @@ import public LLVM.Raw.Types
 %default total
 
 llvm : String -> String
-llvm name = "C:idris2_llvm_" ++ name ++ ",libidris2_llvm"
+llvm name = "C:" ++ name ++ ",libLLVM"
 
-export %foreign (llvm "verify_module")
+export %foreign (llvm "LLVMVerifyModule")
 verifyModule : ModuleRef -> LLVMVerifierFailureAction -> AnyPtr -> PrimIO Int32
 
-export %foreign (llvm "verify_function")
+export %foreign (llvm "LLVMVerifyFunction")
 verifyFunction : ValueRef -> LLVMVerifierFailureAction -> PrimIO Int32
-

@@ -13,6 +13,8 @@
 extern "C" {
 #endif
 
+#define IDRIS2_LLVM_SHIM_ABI_VERSION 2
+
 IDRIS2_LLVM_EXPORT uint32_t idris2_llvm_shim_abi_version(void);
 IDRIS2_LLVM_EXPORT const char *idris2_llvm_string_from_ptr(const char *value);
 IDRIS2_LLVM_EXPORT uint64_t idris2_llvm_string_byte_length(const char *value);

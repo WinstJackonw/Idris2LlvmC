@@ -3,7 +3,7 @@
 This package targets the stable LLVM 22.1 C API needed by an Idris compiler
 backend. `support/bindings.manifest` is the module-to-header manifest, while
 `support/check-bindings.sh` verifies that every Idris `%foreign` declaration
-has a symbol in the built shim.
+has a symbol in either shared libLLVM or the minimal shim.
 
 The raw layer covers contexts, modules, types, constants, values, functions,
 globals, basic blocks, IR builders, metadata, memory buffers, verification,
@@ -32,10 +32,13 @@ boundary.
 
 ## ABI policy
 
-The shim is a shared C ABI boundary over the LLVM static libraries. It checks
-for a 64-bit process, pins LLVM major/minor to 22.1, and uses fixed-width Idris
-FFI values so C `size_t` and enum representation do not leak into Idris code.
-The package supports patch releases in the 22.1 series.
+The raw layer calls the stable LLVM C ABI in monolithic shared libLLVM directly.
+The small shim (ABI version 2) contains only Idris pointer/string/array helpers,
+version convenience calls, error-success testing, and the target initialization
+routines that LLVM exposes as inline C header functions. It checks for a 64-bit
+process and links dynamically to libLLVM; it never links LLVM component archives.
+The package pins LLVM major/minor to 22.1 and supports patch releases in that
+series.
 
 APIs outside the current backend-oriented scope include ORC/JIT, LTO,
 disassembly, object-file inspection, remarks, and LLVM fatal-error handlers.

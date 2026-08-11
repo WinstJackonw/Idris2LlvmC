@@ -5,14 +5,13 @@ import public LLVM.Raw.Types
 %default total
 
 llvm : String -> String
-llvm name = "C:idris2_llvm_" ++ name ++ ",libidris2_llvm"
+llvm name = "C:" ++ name ++ ",libLLVM"
 
-export %foreign (llvm "parse_bitcode_in_context2")
+export %foreign (llvm "LLVMParseBitcodeInContext2")
 parseBitcodeInContext : ContextRef -> MemoryBufferRef -> AnyPtr -> PrimIO Int32
 
-export %foreign (llvm "write_bitcode_to_file")
+export %foreign (llvm "LLVMWriteBitcodeToFile")
 writeBitcodeToFile : ModuleRef -> String -> PrimIO Int32
 
-export %foreign (llvm "write_bitcode_to_memory_buffer")
+export %foreign (llvm "LLVMWriteBitcodeToMemoryBuffer")
 writeBitcodeToMemoryBuffer : ModuleRef -> PrimIO MemoryBufferRef
-

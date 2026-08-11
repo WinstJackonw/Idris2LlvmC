@@ -31,10 +31,15 @@ fi
 mkdir -p "${output_dir}"
 cd "${project_dir}"
 
-IDRIS2_PATH="${project_dir}/src${IDRIS2_PATH:+:${IDRIS2_PATH}}" \
 IDRIS2_PACKAGE_PATH="${package_path}" \
 IDRIS2_LIBS="${project_dir}/lib${library_path:+:${library_path}}" \
-  "${idris2_bin}" --source-dir . --output-dir tests/build \
+  "${idris2_bin}" --source-dir src --build-dir tests/build/ttc \
+  --check src/LLVM.idr
+
+IDRIS2_PACKAGE_PATH="${package_path}" \
+IDRIS2_LIBS="${project_dir}/lib${library_path:+:${library_path}}" \
+  "${idris2_bin}" --source-dir tests --output-dir tests/build \
+  --build-dir tests/build/ttc \
   -o llvm-c-tests tests/Main.idr
 
 DYLD_LIBRARY_PATH="${project_dir}/lib${DYLD_LIBRARY_PATH:+:${DYLD_LIBRARY_PATH}}" \

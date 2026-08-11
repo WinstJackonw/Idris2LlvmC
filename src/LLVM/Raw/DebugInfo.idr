@@ -6,65 +6,64 @@ import public LLVM.Raw.Types
 %default total
 
 llvm : String -> String
-llvm name = "C:idris2_llvm_" ++ name ++ ",libidris2_llvm"
+llvm name = "C:" ++ name ++ ",libLLVM"
 
-export %foreign (llvm "debug_metadata_version")
+export %foreign (llvm "LLVMDebugMetadataVersion")
 debugMetadataVersion : PrimIO Bits32
 
-export %foreign (llvm "create_di_builder")
+export %foreign (llvm "LLVMCreateDIBuilder")
 createDIBuilder : ModuleRef -> PrimIO DIBuilderRef
 
-export %foreign (llvm "di_builder_finalize")
+export %foreign (llvm "LLVMDIBuilderFinalize")
 finalizeDIBuilder : DIBuilderRef -> PrimIO ()
 
-export %foreign (llvm "dispose_di_builder")
+export %foreign (llvm "LLVMDisposeDIBuilder")
 disposeDIBuilder : DIBuilderRef -> PrimIO ()
 
-export %foreign (llvm "di_builder_create_file")
+export %foreign (llvm "LLVMDIBuilderCreateFile")
 createFile : DIBuilderRef -> String -> Bits64 -> String -> Bits64 -> PrimIO MetadataRef
 
-export %foreign (llvm "di_builder_create_compile_unit")
+export %foreign (llvm "LLVMDIBuilderCreateCompileUnit")
 createCompileUnit : DIBuilderRef -> LLVMDWARFSourceLanguage -> MetadataRef -> String -> Bits64 -> Int32 -> String -> Bits64 -> Bits32 -> String -> Bits64 -> LLVMDWARFEmissionKind -> Bits32 -> Int32 -> Int32 -> String -> Bits64 -> String -> Bits64 -> PrimIO MetadataRef
 
-export %foreign (llvm "di_builder_create_basic_type")
+export %foreign (llvm "LLVMDIBuilderCreateBasicType")
 createBasicType : DIBuilderRef -> String -> Bits64 -> Bits64 -> Bits32 -> LLVMDIFlags -> PrimIO MetadataRef
 
-export %foreign (llvm "di_builder_create_pointer_type")
+export %foreign (llvm "LLVMDIBuilderCreatePointerType")
 createPointerType : DIBuilderRef -> MetadataRef -> Bits64 -> Bits32 -> Bits32 -> String -> Bits64 -> PrimIO MetadataRef
 
-export %foreign (llvm "di_builder_create_subroutine_type")
+export %foreign (llvm "LLVMDIBuilderCreateSubroutineType")
 createSubroutineType : DIBuilderRef -> MetadataRef -> AnyPtr -> Bits32 -> LLVMDIFlags -> PrimIO MetadataRef
 
-export %foreign (llvm "di_builder_create_function")
+export %foreign (llvm "LLVMDIBuilderCreateFunction")
 createFunction : DIBuilderRef -> MetadataRef -> String -> Bits64 -> String -> Bits64 -> MetadataRef -> Bits32 -> MetadataRef -> Int32 -> Int32 -> Bits32 -> LLVMDIFlags -> Int32 -> PrimIO MetadataRef
 
-export %foreign (llvm "di_builder_create_lexical_block")
+export %foreign (llvm "LLVMDIBuilderCreateLexicalBlock")
 createLexicalBlock : DIBuilderRef -> MetadataRef -> MetadataRef -> Bits32 -> Bits32 -> PrimIO MetadataRef
 
-export %foreign (llvm "di_builder_create_debug_location")
+export %foreign (llvm "LLVMDIBuilderCreateDebugLocation")
 createDebugLocation : ContextRef -> Bits32 -> Bits32 -> MetadataRef -> MetadataRef -> PrimIO MetadataRef
 
-export %foreign (llvm "di_builder_create_expression")
+export %foreign (llvm "LLVMDIBuilderCreateExpression")
 createExpression : DIBuilderRef -> AnyPtr -> Bits64 -> PrimIO MetadataRef
 
-export %foreign (llvm "di_builder_create_auto_variable")
+export %foreign (llvm "LLVMDIBuilderCreateAutoVariable")
 createAutoVariable : DIBuilderRef -> MetadataRef -> String -> Bits64 -> MetadataRef -> Bits32 -> MetadataRef -> Int32 -> LLVMDIFlags -> Bits32 -> PrimIO MetadataRef
 
-export %foreign (llvm "di_builder_create_parameter_variable")
+export %foreign (llvm "LLVMDIBuilderCreateParameterVariable")
 createParameterVariable : DIBuilderRef -> MetadataRef -> String -> Bits64 -> Bits32 -> MetadataRef -> Bits32 -> MetadataRef -> Int32 -> LLVMDIFlags -> PrimIO MetadataRef
 
-export %foreign (llvm "di_builder_insert_declare_record_at_end")
+export %foreign (llvm "LLVMDIBuilderInsertDeclareRecordAtEnd")
 insertDeclareRecordAtEnd : DIBuilderRef -> ValueRef -> MetadataRef -> MetadataRef -> MetadataRef -> BasicBlockRef -> PrimIO DbgRecordRef
 
-export %foreign (llvm "di_builder_insert_dbg_value_record_at_end")
+export %foreign (llvm "LLVMDIBuilderInsertDbgValueRecordAtEnd")
 insertDbgValueRecordAtEnd : DIBuilderRef -> ValueRef -> MetadataRef -> MetadataRef -> MetadataRef -> BasicBlockRef -> PrimIO DbgRecordRef
 
-export %foreign (llvm "set_subprogram")
+export %foreign (llvm "LLVMSetSubprogram")
 setSubprogram : ValueRef -> MetadataRef -> PrimIO ()
 
-export %foreign (llvm "instruction_set_debug_loc")
+export %foreign (llvm "LLVMInstructionSetDebugLoc")
 instructionSetDebugLoc : ValueRef -> MetadataRef -> PrimIO ()
 
-export %foreign (llvm "set_current_debug_location2")
+export %foreign (llvm "LLVMSetCurrentDebugLocation2")
 setCurrentDebugLocation : BuilderRef -> MetadataRef -> PrimIO ()
-

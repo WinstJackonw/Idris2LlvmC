@@ -5,29 +5,32 @@ import public LLVM.Raw.Types
 %default total
 
 llvm : String -> String
-llvm name = "C:idris2_llvm_" ++ name ++ ",libidris2_llvm"
+llvm name = "C:" ++ name ++ ",libLLVM"
 
-export %foreign (llvm "create_pass_builder_options")
+shim : String -> String
+shim name = "C:idris2_llvm_" ++ name ++ ",libidris2_llvm"
+
+export %foreign (llvm "LLVMCreatePassBuilderOptions")
 createPassBuilderOptions : PrimIO PassBuilderOptionsRef
 
-export %foreign (llvm "dispose_pass_builder_options")
+export %foreign (llvm "LLVMDisposePassBuilderOptions")
 disposePassBuilderOptions : PassBuilderOptionsRef -> PrimIO ()
 
-export %foreign (llvm "pass_builder_options_set_verify_each")
+export %foreign (llvm "LLVMPassBuilderOptionsSetVerifyEach")
 setVerifyEach : PassBuilderOptionsRef -> Int32 -> PrimIO ()
 
-export %foreign (llvm "pass_builder_options_set_debug_logging")
+export %foreign (llvm "LLVMPassBuilderOptionsSetDebugLogging")
 setDebugLogging : PassBuilderOptionsRef -> Int32 -> PrimIO ()
 
-export %foreign (llvm "run_passes")
+export %foreign (llvm "LLVMRunPasses")
 runPasses : ModuleRef -> String -> TargetMachineRef -> PassBuilderOptionsRef -> PrimIO ErrorRef
 
-export %foreign (llvm "error_is_success")
+export %foreign (shim "error_is_success")
 errorIsSuccess : ErrorRef -> PrimIO Int32
 
-export %foreign (llvm "get_error_message")
+export %foreign (llvm "LLVMGetErrorMessage")
 getErrorMessage : ErrorRef -> PrimIO (Ptr String)
 
-export %foreign (llvm "dispose_error_message")
+export %foreign (llvm "LLVMDisposeErrorMessage")
 disposeErrorMessage : Ptr String -> PrimIO ()
 

@@ -6,83 +6,86 @@ import public LLVM.Raw.Types
 %default total
 
 llvm : String -> String
-llvm name = "C:idris2_llvm_" ++ name ++ ",libidris2_llvm"
+llvm name = "C:" ++ name ++ ",libLLVM"
 
-export %foreign (llvm "initialize_all_target_infos")
+shim : String -> String
+shim name = "C:idris2_llvm_" ++ name ++ ",libidris2_llvm"
+
+export %foreign (shim "initialize_all_target_infos")
 initializeAllTargetInfos : PrimIO ()
 
-export %foreign (llvm "initialize_all_targets")
+export %foreign (shim "initialize_all_targets")
 initializeAllTargets : PrimIO ()
 
-export %foreign (llvm "initialize_all_target_mcs")
+export %foreign (shim "initialize_all_target_mcs")
 initializeAllTargetMCs : PrimIO ()
 
-export %foreign (llvm "initialize_all_asm_parsers")
+export %foreign (shim "initialize_all_asm_parsers")
 initializeAllAsmParsers : PrimIO ()
 
-export %foreign (llvm "initialize_all_asm_printers")
+export %foreign (shim "initialize_all_asm_printers")
 initializeAllAsmPrinters : PrimIO ()
 
-export %foreign (llvm "initialize_native_target")
+export %foreign (shim "initialize_native_target")
 initializeNativeTarget : PrimIO Int32
 
-export %foreign (llvm "initialize_native_asm_parser")
+export %foreign (shim "initialize_native_asm_parser")
 initializeNativeAsmParser : PrimIO Int32
 
-export %foreign (llvm "initialize_native_asm_printer")
+export %foreign (shim "initialize_native_asm_printer")
 initializeNativeAsmPrinter : PrimIO Int32
 
-export %foreign (llvm "get_default_target_triple")
+export %foreign (llvm "LLVMGetDefaultTargetTriple")
 getDefaultTargetTriple : PrimIO (Ptr String)
 
-export %foreign (llvm "get_host_cpu_name")
+export %foreign (llvm "LLVMGetHostCPUName")
 getHostCPUName : PrimIO (Ptr String)
 
-export %foreign (llvm "get_host_cpu_features")
+export %foreign (llvm "LLVMGetHostCPUFeatures")
 getHostCPUFeatures : PrimIO (Ptr String)
 
-export %foreign (llvm "get_target_from_triple")
+export %foreign (llvm "LLVMGetTargetFromTriple")
 getTargetFromTriple : String -> AnyPtr -> AnyPtr -> PrimIO Int32
 
-export %foreign (llvm "get_target_name")
+export %foreign (llvm "LLVMGetTargetName")
 getTargetName : TargetRef -> PrimIO (Ptr String)
 
-export %foreign (llvm "get_target_description")
+export %foreign (llvm "LLVMGetTargetDescription")
 getTargetDescription : TargetRef -> PrimIO (Ptr String)
 
-export %foreign (llvm "create_target_machine")
+export %foreign (llvm "LLVMCreateTargetMachine")
 createTargetMachine : TargetRef -> String -> String -> String -> LLVMCodeGenOptLevel -> LLVMRelocMode -> LLVMCodeModel -> PrimIO TargetMachineRef
 
-export %foreign (llvm "dispose_target_machine")
+export %foreign (llvm "LLVMDisposeTargetMachine")
 disposeTargetMachine : TargetMachineRef -> PrimIO ()
 
-export %foreign (llvm "get_target_machine_triple")
+export %foreign (llvm "LLVMGetTargetMachineTriple")
 getTargetMachineTriple : TargetMachineRef -> PrimIO (Ptr String)
 
-export %foreign (llvm "get_target_machine_cpu")
+export %foreign (llvm "LLVMGetTargetMachineCPU")
 getTargetMachineCPU : TargetMachineRef -> PrimIO (Ptr String)
 
-export %foreign (llvm "get_target_machine_feature_string")
+export %foreign (llvm "LLVMGetTargetMachineFeatureString")
 getTargetMachineFeatureString : TargetMachineRef -> PrimIO (Ptr String)
 
-export %foreign (llvm "create_target_data_layout")
+export %foreign (llvm "LLVMCreateTargetDataLayout")
 createTargetDataLayout : TargetMachineRef -> PrimIO TargetDataRef
 
-export %foreign (llvm "dispose_target_data")
+export %foreign (llvm "LLVMDisposeTargetData")
 disposeTargetData : TargetDataRef -> PrimIO ()
 
-export %foreign (llvm "copy_string_rep_of_target_data")
+export %foreign (llvm "LLVMCopyStringRepOfTargetData")
 copyStringRepOfTargetData : TargetDataRef -> PrimIO (Ptr String)
 
-export %foreign (llvm "abi_size_of_type")
+export %foreign (llvm "LLVMABISizeOfType")
 abiSizeOfType : TargetDataRef -> TypeRef -> PrimIO Bits64
 
-export %foreign (llvm "abi_alignment_of_type")
+export %foreign (llvm "LLVMABIAlignmentOfType")
 abiAlignmentOfType : TargetDataRef -> TypeRef -> PrimIO Bits32
 
-export %foreign (llvm "target_machine_emit_to_file")
+export %foreign (llvm "LLVMTargetMachineEmitToFile")
 targetMachineEmitToFile : TargetMachineRef -> ModuleRef -> String -> LLVMCodeGenFileType -> AnyPtr -> PrimIO Int32
 
-export %foreign (llvm "target_machine_emit_to_memory_buffer")
+export %foreign (llvm "LLVMTargetMachineEmitToMemoryBuffer")
 targetMachineEmitToMemoryBuffer : TargetMachineRef -> ModuleRef -> LLVMCodeGenFileType -> AnyPtr -> AnyPtr -> PrimIO Int32
 

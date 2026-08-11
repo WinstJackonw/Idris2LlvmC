@@ -5,9 +5,10 @@ close-to-C `LLVM.Raw.*` layer and an ownership-aware `LLVM.*` façade for IR
 construction, verification, parsing, bitcode, linking, passes, native target
 emission, and debug information.
 
-The package was developed against Idris 2 0.8.0 and LLVM 22.1.x. LLVM may be a
-static build: CMake links it into `libidris2_llvm`, the shared shim loaded by
-Idris.
+The package was developed against Idris 2 0.8.0 and LLVM 22.1.x. Raw bindings
+load LLVM's monolithic shared `libLLVM` directly. A small C shim is retained
+only for Idris pointer/string helpers and LLVM APIs implemented as inline C
+header functions; it does not embed LLVM's static component libraries.
 
 ## Build
 
@@ -33,9 +34,10 @@ package hard-codes the local source or build paths.
 The package is self-contained apart from Idris `base`; no network-fetched Idris
 FFI helper package is required.
 
-For Nix consumers, the flake exports the installed Idris library and its native
-shim as both `packages.<system>.default` and `packages.<system>.idris2-llvm-c`. A
-downstream flake can pass `idris2-llvm-c.packages.${system}.default` in its
+For Nix consumers, the flake exports the installed Idris library, its minimal
+native shim, and an exact link to the pinned shared libLLVM as both
+`packages.<system>.default` and `packages.<system>.idris2-llvm-c`. A downstream
+flake can pass `idris2-llvm-c.packages.${system}.default` in its
 `idrisLibraries` list.
 
 ## Use
@@ -71,8 +73,9 @@ LLVM_CONFIG=path/to/llvm/bin/llvm-config ./tests/run.sh
 
 The suite compiles and runs Idris code covering construction, DIBuilder,
 verification, textual IR and bitcode round-trips, module linking, the new pass
-manager, and native object emission. It also runs the C++ shim smoke test and
-checks all declared FFI symbols. Generated outputs go under `tests/build`.
+manager, and native object emission. It also runs the C shim smoke test and
+checks every direct libLLVM and shim FFI symbol. Generated outputs go under
+`tests/build`.
 
 See [support/BINDINGS.md](support/BINDINGS.md) for coverage, ownership rules,
 ABI policy, and deliberately out-of-scope LLVM-C subsystems.

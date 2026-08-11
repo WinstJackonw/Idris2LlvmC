@@ -106,7 +106,7 @@ runTests = do
   version <- llvmVersion
   assert "LLVM major version" (version.major == 22)
   assert "LLVM minor version" (version.minor == 1)
-  assert "shim ABI version" (!(shimABIVersion) == 1)
+  assert "shim ABI version" (!(shimABIVersion) == 2)
   withContext $ \context =>
     withModule context "binding-tests" $ \mod => do
       (function, instruction) <- buildAddFunction context mod

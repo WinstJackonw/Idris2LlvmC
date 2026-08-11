@@ -5,9 +5,8 @@ import public LLVM.Raw.Types
 %default total
 
 llvm : String -> String
-llvm name = "C:idris2_llvm_" ++ name ++ ",libidris2_llvm"
+llvm name = "C:" ++ name ++ ",libLLVM"
 
 ||| Links source into destination and always destroys source.
-export %foreign (llvm "link_modules2")
+export %foreign (llvm "LLVMLinkModules2")
 linkModules : ModuleRef -> ModuleRef -> PrimIO Int32
-
