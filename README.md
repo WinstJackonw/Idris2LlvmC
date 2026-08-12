@@ -62,8 +62,12 @@ withContext $ \context =>
           pure ()
 ```
 
-`examples/Add.idr` is a runnable version that also verifies and prints its
-module. The safe façade uses `LLVMType` because `Type` is reserved by Idris.
+`examples/SafeAdd.idr` is a runnable version of that construction built with the
+safe façade; it also verifies and prints its module. `examples/RawAdd.idr` builds
+the same `add` function directly against the close-to-C `LLVM.Raw` layer, where
+every resource (context, module, builder) and every owned string must be
+disposed by hand. The safe façade uses `LLVMType` because `Type` is reserved by
+Idris.
 
 ## Test
 

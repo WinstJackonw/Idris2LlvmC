@@ -3,6 +3,10 @@ module Main
 import Data.String
 import System
 import LLVM
+import LLVM.Internal.Array
+import LLVM.Internal.String
+import LLVM.Raw.Core as Raw
+import LLVM.Raw.Types as RawTypes
 
 %default total
 
@@ -83,6 +87,40 @@ checkTargetEmission mod = do
     Right (Left error) => failTest $ "object emission: " ++ show error
     Left error => failTest $ "target machine: " ++ show error
 
+buildRawAddFunction : Context -> Module -> IO (Value, Value)
+buildRawAddFunction context mod = do
+  let rawContext = toRawContext context
+  let rawModule = toRawModule mod
+  integerType <- primIO $ Raw.int32TypeInContext rawContext
+  signature <- withAnyPtrArray [RawTypes.forgetRef integerType, RawTypes.forgetRef integerType] $ \params, count =>
+    primIO $ Raw.functionType integerType params count 0
+  function <- primIO $ Raw.addFunction rawModule "raw_add" signature
+  left <- primIO $ Raw.getParam function 0
+  right <- primIO $ Raw.getParam function 1
+  leftLength <- byteLength "left"
+  rightLength <- byteLength "right"
+  primIO $ Raw.setValueName left "left" leftLength
+  primIO $ Raw.setValueName right "right" rightLength
+  entry <- primIO $ Raw.appendBasicBlockInContext rawContext function "entry"
+  builder <- primIO $ Raw.createBuilderInContext rawContext
+  primIO $ Raw.positionBuilderAtEnd builder entry
+  sum <- primIO $ Raw.buildAdd builder left right "sum"
+  _ <- primIO $ Raw.buildRet builder sum
+  primIO $ Raw.disposeBuilder builder
+  pure (MkValue function, MkValue sum)
+
+checkRawInterface : IO ()
+checkRawInterface = withContext $ \context =>
+  withModule context "raw-binding-tests" $ \mod => do
+    (function, instruction) <- buildRawAddFunction context mod
+    expectUnit "raw module verification" !(verifyModule mod)
+    expectUnit "raw function verification" !(verifyFunction function)
+    ir <- moduleIR mod
+    assert "raw add function appears in IR" ("define i32 @raw_add" `isInfixOf` ir)
+    assert "raw add instruction appears in IR" ("add i32 %left, %right" `isInfixOf` ir)
+    printed <- valueIR instruction
+    assert "raw instruction prints as add" ("add i32 %left, %right" `isInfixOf` printed)
+
 checkLinker : Context -> Module -> IO ()
 checkLinker context destination =
   withModule context "link-source" $ \source => do
@@ -120,6 +158,7 @@ runTests = do
       checkLinker context mod
       checkPasses mod
       checkTargetEmission mod
+  checkRawInterface
 
 main : IO ()
 main = do
