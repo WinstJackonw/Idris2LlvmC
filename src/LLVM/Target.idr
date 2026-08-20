@@ -110,6 +110,7 @@ initializeAll = do
   primIO Raw.initializeAllTargetMCs
   primIO Raw.initializeAllAsmParsers
   primIO Raw.initializeAllAsmPrinters
+  primIO Raw.initializeAllDisassemblers
 
 export
 hostTargetMachineConfig : IO TargetMachineConfig

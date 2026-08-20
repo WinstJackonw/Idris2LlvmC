@@ -26,6 +26,9 @@ initializeAllAsmParsers : PrimIO ()
 export %foreign (shim "initialize_all_asm_printers")
 initializeAllAsmPrinters : PrimIO ()
 
+export %foreign (shim "initialize_all_disassemblers")
+initializeAllDisassemblers : PrimIO ()
+
 export %foreign (shim "initialize_native_target")
 initializeNativeTarget : PrimIO Int32
 
@@ -88,4 +91,3 @@ targetMachineEmitToFile : TargetMachineRef -> ModuleRef -> String -> LLVMCodeGen
 
 export %foreign (llvm "LLVMTargetMachineEmitToMemoryBuffer")
 targetMachineEmitToMemoryBuffer : TargetMachineRef -> ModuleRef -> LLVMCodeGenFileType -> AnyPtr -> AnyPtr -> PrimIO Int32
-
