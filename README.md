@@ -3,10 +3,13 @@
 An Idris 2 binding to the backend-oriented LLVM 22.1 C API. It contains a
 close-to-C `LLVM.Raw.*` layer and an ownership-aware `LLVM.*` façade for IR
 construction, verification, parsing, bitcode, linking, passes, native target
-emission, and debug information.
+emission, debug information, ORC/LLJIT, regular and ThinLTO, disassembly,
+object inspection, remarks, atomics, exception handling, and coroutine
+intrinsics.
 
 The package was developed against Idris 2 0.8.0 and LLVM 22.1.x. Raw bindings
-load LLVM's monolithic shared `libLLVM` directly. A small C shim is retained
+load LLVM's monolithic shared `libLLVM` directly; `LLVM.Raw.LTO` loads LLVM's
+shared `libLTO`. A small C shim is retained
 only for Idris pointer/string helpers and LLVM APIs implemented as inline C
 header functions; it does not embed LLVM's static component libraries.
 
@@ -69,6 +72,13 @@ every resource (context, module, builder) and every owned string must be
 disposed by hand. The safe façade uses `LLVMType` because `Type` is reserved by
 Idris.
 
+For larger builders, `LLVM.Builder` provides both a compact
+`withModuleBuilder` bracket and a result-aware `ModuleBuilder` monad. The latter
+implicitly carries the context, module, and builder and short-circuits
+`LLVMResult` failures. `LLVM.Orc.addJITModule` accepts the same DSL and transfers
+the completed module into a thread-safe LLJIT context. `examples/JIT.idr`
+builds, looks up, and executes a two-argument function through this path.
+
 ## Test
 
 ```sh
@@ -77,9 +87,11 @@ LLVM_CONFIG=path/to/llvm/bin/llvm-config ./tests/run.sh
 
 The suite compiles and runs Idris code covering construction, DIBuilder,
 verification, textual IR and bitcode round-trips, module linking, the new pass
-manager, and native object emission. It also runs the C shim smoke test and
-checks every direct libLLVM and shim FFI symbol. Generated outputs go under
+manager, native object emission, vector/EH/atomic Core APIs, coroutine
+intrinsics, LLJIT execution, regular/ThinLTO, disassembly, object inspection,
+and YAML remarks. It also runs the C shim smoke test and checks every direct
+libLLVM, libLTO, and shim FFI symbol. Generated outputs go under
 `tests/build`.
 
 See [support/BINDINGS.md](support/BINDINGS.md) for coverage, ownership rules,
-ABI policy, and deliberately out-of-scope LLVM-C subsystems.
+ABI policy, and the remaining advanced ORC scope.

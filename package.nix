@@ -54,6 +54,10 @@ let
         substituteInPlace "$source_file" \
           --replace-fail ',libLLVM"' ",$out/lib/libLLVM\""
       done
+      grep -rlZ ',libLTO"' src | while IFS= read -r -d "" source_file; do
+        substituteInPlace "$source_file" \
+          --replace-fail ',libLTO"' ",$out/lib/libLTO\""
+      done
     '';
   };
 in
@@ -68,6 +72,8 @@ in
     install -m 0755 lib/libidris2_llvm "$out/lib/"
     ln -s "$(readlink lib/libLLVM)" "$out/lib/libLLVM"
     ln -s "$(readlink lib/libLLVM)" "$out/lib/libLLVM${llvmSharedSuffix}"
+    ln -s "$(readlink lib/libLTO)" "$out/lib/libLTO"
+    ln -s "$(readlink lib/libLTO)" "$out/lib/libLTO${llvmSharedSuffix}"
     for shared_library in lib/libidris2_llvm.so lib/libidris2_llvm.dylib; do
       if [ -f "$shared_library" ]; then
         install -m 0755 "$shared_library" "$out/lib/"
@@ -78,6 +84,8 @@ in
     ln -s "$out/lib/libidris2_llvm" "$package_dir/lib/"
     ln -s "$out/lib/libLLVM" "$package_dir/lib/"
     ln -s "$out/lib/libLLVM${llvmSharedSuffix}" "$package_dir/lib/"
+    ln -s "$out/lib/libLTO" "$package_dir/lib/"
+    ln -s "$out/lib/libLTO${llvmSharedSuffix}" "$package_dir/lib/"
     for shared_library in "$out/lib/libidris2_llvm.so" "$out/lib/libidris2_llvm.dylib"; do
       if [ -f "$shared_library" ]; then
         ln -s "$shared_library" "$package_dir/lib/"

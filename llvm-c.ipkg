@@ -21,11 +21,25 @@ modules = LLVM.Raw.Types
         , LLVM.Raw.Passes
         , LLVM.Raw.Target
         , LLVM.Raw.DebugInfo
+        , LLVM.Raw.ErrorHandling
+        , LLVM.Raw.Disassembler
+        , LLVM.Raw.Object
+        , LLVM.Raw.Remarks
+        , LLVM.Raw.Orc
+        , LLVM.Raw.LTO
         , LLVM.Raw
         , LLVM.Internal.Array
         , LLVM.Internal.String
         , LLVM.Error
         , LLVM.Core
+        , LLVM.Builder
+        , LLVM.Coroutines
+        , LLVM.ErrorHandling
+        , LLVM.Disassembler
+        , LLVM.Object
+        , LLVM.Remarks
+        , LLVM.Orc
+        , LLVM.LTO
         , LLVM.Analysis
         , LLVM.IRReader
         , LLVM.Bitcode
