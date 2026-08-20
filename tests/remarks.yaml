@@ -1,0 +1,10 @@
+--- !Passed
+Pass: inline
+Name: Inlined
+DebugLoc: { File: test.c, Line: 7, Column: 3 }
+Function: add
+Hotness: 42
+Args:
+  - Callee: helper
+    DebugLoc: { File: test.c, Line: 8, Column: 5 }
+...

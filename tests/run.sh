@@ -42,7 +42,7 @@ IDRIS2_LIBS="${project_dir}/lib${library_path:+:${library_path}}" \
   --build-dir tests/build/ttc \
   -o llvm-c-tests tests/Main.idr
 
-examples=(SafeAdd RawAdd Cond Globals Struct ParseIR Bitcode Link Optimize Emit Debug RawCall RawBitcode)
+examples=(SafeAdd RawAdd Cond Globals Struct ParseIR Bitcode Link Optimize Emit Debug RawCall RawBitcode JIT)
 
 for example in "${examples[@]}"; do
   IDRIS2_PACKAGE_PATH="${package_path}" \
@@ -109,6 +109,7 @@ example_checks=(
   "Debug|!llvm.dbg.cu"
   "RawCall|call i32 @tick"
   "RawBitcode|define i32 @add"
+  "JIT|jit result: 42"
 )
 
 for check in "${example_checks[@]}"; do
