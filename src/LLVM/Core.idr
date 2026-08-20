@@ -29,6 +29,7 @@ public export data BasicBlock = MkBasicBlock RawTypes.BasicBlockRef
 public export data Builder = MkBuilder RawTypes.BuilderRef
 public export data Metadata = MkMetadata RawTypes.MetadataRef
 public export data MemoryBuffer = MkMemoryBuffer RawTypes.MemoryBufferRef
+public export data Attribute = MkAttribute RawTypes.AttributeRef
 
 export toRawContext : Context -> RawTypes.ContextRef
 toRawContext (MkContext ref) = ref
@@ -53,6 +54,9 @@ toRawMetadata (MkMetadata ref) = ref
 
 export toRawMemoryBuffer : MemoryBuffer -> RawTypes.MemoryBufferRef
 toRawMemoryBuffer (MkMemoryBuffer ref) = ref
+
+export toRawAttribute : Attribute -> RawTypes.AttributeRef
+toRawAttribute (MkAttribute ref) = ref
 
 export
 llvmVersion : IO LLVMVersion
@@ -90,12 +94,50 @@ withBuilder (MkContext context) action = do
   primIO $ Raw.disposeBuilder builder
   pure result
 
+export
+withContextE : (Context -> IO (LLVMResult a)) -> IO (LLVMResult a)
+withContextE = withContext
+
+export
+withModuleE : Context -> String -> (Module -> IO (LLVMResult a)) -> IO (LLVMResult a)
+withModuleE = withModule
+
+export
+withBuilderE : Context -> (Builder -> IO (LLVMResult a)) -> IO (LLVMResult a)
+withBuilderE = withBuilder
+
 ownedString : IO (Ptr String) -> IO String
 ownedString get = do
   ptr <- get
   value <- peekString ptr
   primIO $ Raw.disposeMessage ptr
   pure value
+
+takeOwnedMessage : AnyPtr -> String -> IO String
+takeOwnedMessage pointer fallback = do
+  null <- isNull pointer
+  if null
+    then pure fallback
+    else do
+      let stringPointer : Ptr String = prim__castPtr pointer
+      message <- peekString stringPointer
+      primIO $ Raw.disposeMessage stringPointer
+      pure message
+
+export
+withMemoryBufferFromFile : String -> (MemoryBuffer -> IO (LLVMResult a)) -> IO (LLVMResult a)
+withMemoryBufferFromFile path action = do
+  ((status, messagePointer), bufferPointer) <- withOutPtr $ \outBuffer =>
+    withOutPtr $ \outMessage =>
+      primIO $ Raw.createMemoryBufferWithContentsOfFile path outBuffer outMessage
+  if status /= 0
+    then Left . simpleError "withMemoryBufferFromFile" <$>
+           takeOwnedMessage messagePointer ("could not read " ++ path)
+    else do
+      let bufferRef : RawTypes.MemoryBufferRef = prim__castPtr bufferPointer
+      result <- action (MkMemoryBuffer bufferRef)
+      primIO $ Raw.disposeMemoryBuffer bufferRef
+      pure result
 
 export
 moduleIR : Module -> IO String
@@ -182,6 +224,19 @@ vectorType : LLVMType -> Bits32 -> IO LLVMType
 vectorType (MkLLVMType element) count = MkLLVMType <$> (primIO $ Raw.vectorType element count)
 
 export
+scalableVectorType : LLVMType -> Bits32 -> IO LLVMType
+scalableVectorType (MkLLVMType element) count =
+  MkLLVMType <$> (primIO $ Raw.scalableVectorType element count)
+
+export
+elementType : LLVMType -> IO LLVMType
+elementType (MkLLVMType typeRef) = MkLLVMType <$> (primIO $ Raw.getElementType typeRef)
+
+export
+vectorSize : LLVMType -> IO Bits32
+vectorSize (MkLLVMType typeRef) = primIO $ Raw.getVectorSize typeRef
+
+export
 functionType : LLVMType -> List LLVMType -> Bool -> IO LLVMType
 functionType (MkLLVMType result) params vararg =
   withRefArray (map toRawType params) $ \array, count =>
@@ -229,6 +284,57 @@ poison : LLVMType -> IO Value
 poison (MkLLVMType typeRef) = MkValue <$> (primIO $ Raw.getPoison typeRef)
 
 export
+constVector : List Value -> IO Value
+constVector values = withRefArray (map toRawValue values) $ \array, count =>
+  MkValue <$> (primIO $ Raw.constVector array count)
+
+public export
+data AttributeIndex = FunctionAttribute | ReturnAttribute | ParameterAttribute Bits32
+
+attributeIndex : AttributeIndex -> Bits32
+attributeIndex FunctionAttribute = 4294967295
+attributeIndex ReturnAttribute = 0
+attributeIndex (ParameterAttribute index) = index + 1
+
+export
+enumAttribute : Context -> String -> Bits64 -> IO (LLVMResult Attribute)
+enumAttribute (MkContext context) name value = do
+  length <- byteLength name
+  kind <- primIO $ Raw.getEnumAttributeKindForName name length
+  if kind == 0
+    then pure $ Left $ simpleError "enumAttribute" ("unknown LLVM attribute: " ++ name)
+    else Right . MkAttribute <$> (primIO $ Raw.createEnumAttribute context kind value)
+
+export
+stringAttribute : Context -> String -> String -> IO Attribute
+stringAttribute (MkContext context) key value = do
+  keyLength <- byteLength key
+  valueLength <- byteLength value
+  MkAttribute <$> (primIO $ Raw.createStringAttribute context key (cast keyLength) value (cast valueLength))
+
+export
+addAttribute : Value -> AttributeIndex -> Attribute -> IO ()
+addAttribute (MkValue function) index (MkAttribute attribute) =
+  primIO $ Raw.addAttributeAtIndex function (attributeIndex index) attribute
+
+export
+removeEnumAttribute : Value -> AttributeIndex -> String -> IO (LLVMResult ())
+removeEnumAttribute (MkValue function) index name = do
+  length <- byteLength name
+  kind <- primIO $ Raw.getEnumAttributeKindForName name length
+  if kind == 0
+    then pure $ Left $ simpleError "removeEnumAttribute" ("unknown LLVM attribute: " ++ name)
+    else do
+      primIO $ Raw.removeEnumAttributeAtIndex function (attributeIndex index) kind
+      pure $ Right ()
+
+export
+removeStringAttribute : Value -> AttributeIndex -> String -> IO ()
+removeStringAttribute (MkValue function) index name = do
+  length <- byteLength name
+  primIO $ Raw.removeStringAttributeAtIndex function (attributeIndex index) name (cast length)
+
+export
 addFunction : Module -> String -> LLVMType -> IO Value
 addFunction (MkModule moduleRef) name (MkLLVMType typeRef) =
   MkValue <$> (primIO $ Raw.addFunction moduleRef name typeRef)
@@ -246,6 +352,38 @@ parameter (MkValue function) index = do
   if index >= count
     then pure Nothing
     else Just . MkValue <$> (primIO $ Raw.getParam function index)
+
+public export
+data CallingConvention = CCall | FastCall | ColdCall | GHCCall | HiPECall
+                       | AnyRegCall | PreserveMostCall | PreserveAllCall
+                       | SwiftCall | CXXFastTLSCall | CustomCall Bits32
+
+callingConvention : CallingConvention -> Bits32
+callingConvention CCall = 0
+callingConvention FastCall = 8
+callingConvention ColdCall = 9
+callingConvention GHCCall = 10
+callingConvention HiPECall = 11
+callingConvention AnyRegCall = 13
+callingConvention PreserveMostCall = 14
+callingConvention PreserveAllCall = 15
+callingConvention SwiftCall = 16
+callingConvention CXXFastTLSCall = 17
+callingConvention (CustomCall value) = value
+
+export
+setFunctionCallConv : Value -> CallingConvention -> IO ()
+setFunctionCallConv (MkValue function) convention =
+  primIO $ Raw.setFunctionCallConv function (callingConvention convention)
+
+export
+functionCallConv : Value -> IO Bits32
+functionCallConv (MkValue function) = primIO $ Raw.getFunctionCallConv function
+
+export
+setPersonality : Value -> Value -> IO ()
+setPersonality (MkValue function) (MkValue personality) =
+  primIO $ Raw.setPersonalityFn function personality
 
 export
 setValueName : Value -> String -> IO ()
@@ -289,6 +427,112 @@ appendBasicBlock : Context -> Value -> String -> IO BasicBlock
 appendBasicBlock (MkContext context) (MkValue function) name =
   MkBasicBlock <$> (primIO $ Raw.appendBasicBlockInContext context function name)
 
+nullableValue : RawTypes.ValueRef -> Maybe Value
+nullableValue ref = if RawTypes.isNullRef ref then Nothing else Just (MkValue ref)
+
+nullableBlock : RawTypes.BasicBlockRef -> Maybe BasicBlock
+nullableBlock ref = if RawTypes.isNullRef ref then Nothing else Just (MkBasicBlock ref)
+
+export
+firstBasicBlock : Value -> IO (Maybe BasicBlock)
+firstBasicBlock (MkValue function) = nullableBlock <$> (primIO $ Raw.getFirstBasicBlock function)
+
+export
+nextBasicBlock : BasicBlock -> IO (Maybe BasicBlock)
+nextBasicBlock (MkBasicBlock block) = nullableBlock <$> (primIO $ Raw.getNextBasicBlock block)
+
+export
+firstInstruction : BasicBlock -> IO (Maybe Value)
+firstInstruction (MkBasicBlock block) = nullableValue <$> (primIO $ Raw.getFirstInstruction block)
+
+export
+nextInstruction : Value -> IO (Maybe Value)
+nextInstruction (MkValue instruction) = nullableValue <$> (primIO $ Raw.getNextInstruction instruction)
+
+export
+typeOf : Value -> IO LLVMType
+typeOf (MkValue value) = MkLLVMType <$> (primIO $ Raw.typeOf value)
+
+export
+globalValueType : Value -> IO LLVMType
+globalValueType (MkValue value) = MkLLVMType <$> (primIO $ Raw.globalValueType value)
+
+public export
+data ValueKind = ArgumentValue | BasicBlockValue | MemoryUseValue | MemoryDefValue
+               | MemoryPhiValue | FunctionValue | GlobalAliasValue | GlobalIFuncValue
+               | GlobalVariableValue | BlockAddressValue | ConstantExprValue
+               | ConstantArrayValue | ConstantStructValue | ConstantVectorValue
+               | UndefValue | ConstantAggregateZeroValue | ConstantDataArrayValue
+               | ConstantDataVectorValue | ConstantIntValue | ConstantFPValue
+               | ConstantPointerNullValue | ConstantTokenNoneValue | MetadataAsValue
+               | InlineAsmValue | InstructionValue | PoisonValue | ConstantTargetNoneValue
+               | ConstantPtrAuthValue | UnknownValueKind Int32
+
+decodeValueKind : Int32 -> ValueKind
+decodeValueKind 0 = ArgumentValue
+decodeValueKind 1 = BasicBlockValue
+decodeValueKind 2 = MemoryUseValue
+decodeValueKind 3 = MemoryDefValue
+decodeValueKind 4 = MemoryPhiValue
+decodeValueKind 5 = FunctionValue
+decodeValueKind 6 = GlobalAliasValue
+decodeValueKind 7 = GlobalIFuncValue
+decodeValueKind 8 = GlobalVariableValue
+decodeValueKind 9 = BlockAddressValue
+decodeValueKind 10 = ConstantExprValue
+decodeValueKind 11 = ConstantArrayValue
+decodeValueKind 12 = ConstantStructValue
+decodeValueKind 13 = ConstantVectorValue
+decodeValueKind 14 = UndefValue
+decodeValueKind 15 = ConstantAggregateZeroValue
+decodeValueKind 16 = ConstantDataArrayValue
+decodeValueKind 17 = ConstantDataVectorValue
+decodeValueKind 18 = ConstantIntValue
+decodeValueKind 19 = ConstantFPValue
+decodeValueKind 20 = ConstantPointerNullValue
+decodeValueKind 21 = ConstantTokenNoneValue
+decodeValueKind 22 = MetadataAsValue
+decodeValueKind 23 = InlineAsmValue
+decodeValueKind 24 = InstructionValue
+decodeValueKind 25 = PoisonValue
+decodeValueKind 26 = ConstantTargetNoneValue
+decodeValueKind 27 = ConstantPtrAuthValue
+decodeValueKind value = UnknownValueKind value
+
+export
+valueKind : Value -> IO ValueKind
+valueKind (MkValue value) = decodeValueKind <$> (primIO $ Raw.getValueKind value)
+
+public export
+data ValueClass = IsArgument | IsFunction | IsGlobalVariable | IsInstruction
+                | IsCall | IsInvoke | IsLandingPad | IsPhi | IsLoad | IsStore
+                | IsBranch | IsReturn | IsAlloca | IsConstantInt | IsConstantFP
+                | IsConstantExpr
+
+rawClass : ValueClass -> RawTypes.ValueRef -> PrimIO RawTypes.ValueRef
+rawClass IsArgument = Raw.isAArgument
+rawClass IsFunction = Raw.isAFunction
+rawClass IsGlobalVariable = Raw.isAGlobalVariable
+rawClass IsInstruction = Raw.isAInstruction
+rawClass IsCall = Raw.isACallInst
+rawClass IsInvoke = Raw.isAInvokeInst
+rawClass IsLandingPad = Raw.isALandingPadInst
+rawClass IsPhi = Raw.isAPHINode
+rawClass IsLoad = Raw.isALoadInst
+rawClass IsStore = Raw.isAStoreInst
+rawClass IsBranch = Raw.isABranchInst
+rawClass IsReturn = Raw.isAReturnInst
+rawClass IsAlloca = Raw.isAAllocaInst
+rawClass IsConstantInt = Raw.isAConstantInt
+rawClass IsConstantFP = Raw.isAConstantFP
+rawClass IsConstantExpr = Raw.isAConstantExpr
+
+export
+isA : ValueClass -> Value -> IO Bool
+isA cls (MkValue value) = do
+  result <- primIO $ rawClass cls value
+  pure $ not (RawTypes.isNullRef result)
+
 export
 positionAtEnd : Builder -> BasicBlock -> IO ()
 positionAtEnd (MkBuilder builder) (MkBasicBlock block) =
@@ -310,6 +554,30 @@ export
 buildCondBr : Builder -> Value -> BasicBlock -> BasicBlock -> IO Value
 buildCondBr (MkBuilder builder) (MkValue condition) (MkBasicBlock thenBlock) (MkBasicBlock elseBlock) =
   MkValue <$> (primIO $ Raw.buildCondBr builder condition thenBlock elseBlock)
+
+export
+buildInvoke : Builder -> LLVMType -> Value -> List Value -> BasicBlock -> BasicBlock -> String -> IO Value
+buildInvoke (MkBuilder builder) (MkLLVMType signature) (MkValue function) args
+            (MkBasicBlock normal) (MkBasicBlock unwind) name =
+  withRefArray (map toRawValue args) $ \array, count =>
+    MkValue <$> (primIO $ Raw.buildInvoke builder signature function array count normal unwind name)
+
+export
+buildLandingPad : Builder -> LLVMType -> Value -> Bits32 -> String -> IO Value
+buildLandingPad (MkBuilder builder) (MkLLVMType resultType) (MkValue personality) clauses name =
+  MkValue <$> (primIO $ Raw.buildLandingPad builder resultType personality clauses name)
+
+export
+addClause : Value -> Value -> IO ()
+addClause (MkValue landingPad) (MkValue clause) = primIO $ Raw.addClause landingPad clause
+
+export
+setCleanup : Value -> Bool -> IO ()
+setCleanup (MkValue landingPad) enabled = primIO $ Raw.setCleanup landingPad (if enabled then 1 else 0)
+
+export
+buildResume : Builder -> Value -> IO Value
+buildResume (MkBuilder builder) (MkValue exception) = MkValue <$> (primIO $ Raw.buildResume builder exception)
 
 export
 buildAdd : Builder -> Value -> Value -> String -> IO Value
@@ -385,6 +653,129 @@ buildCall : Builder -> LLVMType -> Value -> List Value -> String -> IO Value
 buildCall (MkBuilder builder) (MkLLVMType functionType) (MkValue function) args name =
   withRefArray (map toRawValue args) $ \array, count =>
     MkValue <$> (primIO $ Raw.buildCall builder functionType function array count name)
+
+export
+setInstructionCallConv : Value -> CallingConvention -> IO ()
+setInstructionCallConv (MkValue instruction) convention =
+  primIO $ Raw.setInstructionCallConv instruction (callingConvention convention)
+
+export
+instructionCallConv : Value -> IO Bits32
+instructionCallConv (MkValue instruction) = primIO $ Raw.getInstructionCallConv instruction
+
+public export
+data TailCallKind = NotTail | Tail | MustTail | NoTail
+
+rawTailCallKind : TailCallKind -> RawEnums.LLVMTailCallKind
+rawTailCallKind NotTail = RawEnums.llvmTailCallNone
+rawTailCallKind Tail = RawEnums.llvmTailCall
+rawTailCallKind MustTail = RawEnums.llvmMustTailCall
+rawTailCallKind NoTail = RawEnums.llvmNoTailCall
+
+export
+setTailCall : Value -> Bool -> IO ()
+setTailCall (MkValue call) enabled = primIO $ Raw.setTailCall call (if enabled then 1 else 0)
+
+export
+setTailCallKind : Value -> TailCallKind -> IO ()
+setTailCallKind (MkValue call) kind = primIO $ Raw.setTailCallKind call (rawTailCallKind kind)
+
+export
+buildExtractElement : Builder -> Value -> Value -> String -> IO Value
+buildExtractElement (MkBuilder builder) (MkValue vector) (MkValue index) name =
+  MkValue <$> (primIO $ Raw.buildExtractElement builder vector index name)
+
+export
+buildInsertElement : Builder -> Value -> Value -> Value -> String -> IO Value
+buildInsertElement (MkBuilder builder) (MkValue vector) (MkValue element) (MkValue index) name =
+  MkValue <$> (primIO $ Raw.buildInsertElement builder vector element index name)
+
+export
+buildShuffleVector : Builder -> Value -> Value -> Value -> String -> IO Value
+buildShuffleVector (MkBuilder builder) (MkValue left) (MkValue right) (MkValue mask) name =
+  MkValue <$> (primIO $ Raw.buildShuffleVector builder left right mask name)
+
+public export
+data AtomicOrdering = NotAtomic | Unordered | Monotonic | Acquire | Release
+                    | AcquireRelease | SequentiallyConsistent
+
+rawOrdering : AtomicOrdering -> RawEnums.LLVMAtomicOrdering
+rawOrdering NotAtomic = RawEnums.llvmAtomicNotAtomic
+rawOrdering Unordered = RawEnums.llvmAtomicUnordered
+rawOrdering Monotonic = RawEnums.llvmAtomicMonotonic
+rawOrdering Acquire = RawEnums.llvmAtomicAcquire
+rawOrdering Release = RawEnums.llvmAtomicRelease
+rawOrdering AcquireRelease = RawEnums.llvmAtomicAcquireRelease
+rawOrdering SequentiallyConsistent = RawEnums.llvmAtomicSequentiallyConsistent
+
+public export
+data AtomicRMWOp = AtomicXchg | AtomicAdd | AtomicSub | AtomicAnd | AtomicNand
+                 | AtomicOr | AtomicXor | AtomicMax | AtomicMin | AtomicUMax
+                 | AtomicUMin | AtomicFAdd | AtomicFSub | AtomicFMax | AtomicFMin
+                 | AtomicUIncWrap | AtomicUDecWrap | AtomicUSubCond | AtomicUSubSat
+                 | AtomicFMaximum | AtomicFMinimum
+
+rawRMWOp : AtomicRMWOp -> RawEnums.LLVMAtomicRMWBinOp
+rawRMWOp AtomicXchg = RawEnums.llvmAtomicRMWXchg
+rawRMWOp AtomicAdd = RawEnums.llvmAtomicRMWAdd
+rawRMWOp AtomicSub = RawEnums.llvmAtomicRMWSub
+rawRMWOp AtomicAnd = RawEnums.llvmAtomicRMWAnd
+rawRMWOp AtomicNand = RawEnums.llvmAtomicRMWNand
+rawRMWOp AtomicOr = RawEnums.llvmAtomicRMWOr
+rawRMWOp AtomicXor = RawEnums.llvmAtomicRMWXor
+rawRMWOp AtomicMax = RawEnums.llvmAtomicRMWMax
+rawRMWOp AtomicMin = RawEnums.llvmAtomicRMWMin
+rawRMWOp AtomicUMax = RawEnums.llvmAtomicRMWUMax
+rawRMWOp AtomicUMin = RawEnums.llvmAtomicRMWUMin
+rawRMWOp AtomicFAdd = RawEnums.llvmAtomicRMWFAdd
+rawRMWOp AtomicFSub = RawEnums.llvmAtomicRMWFSub
+rawRMWOp AtomicFMax = RawEnums.llvmAtomicRMWFMax
+rawRMWOp AtomicFMin = RawEnums.llvmAtomicRMWFMin
+rawRMWOp AtomicUIncWrap = RawEnums.llvmAtomicRMWUIncWrap
+rawRMWOp AtomicUDecWrap = RawEnums.llvmAtomicRMWUDecWrap
+rawRMWOp AtomicUSubCond = RawEnums.llvmAtomicRMWUSubCond
+rawRMWOp AtomicUSubSat = RawEnums.llvmAtomicRMWUSubSat
+rawRMWOp AtomicFMaximum = RawEnums.llvmAtomicRMWFMaximum
+rawRMWOp AtomicFMinimum = RawEnums.llvmAtomicRMWFMinimum
+
+export
+setVolatile : Value -> Bool -> IO ()
+setVolatile (MkValue instruction) enabled = primIO $ Raw.setVolatile instruction (if enabled then 1 else 0)
+
+export
+setAtomicOrdering : Value -> AtomicOrdering -> IO ()
+setAtomicOrdering (MkValue instruction) ordering = primIO $ Raw.setOrdering instruction (rawOrdering ordering)
+
+export
+buildFence : Builder -> AtomicOrdering -> Bool -> String -> IO Value
+buildFence (MkBuilder builder) ordering singleThread name =
+  MkValue <$> (primIO $ Raw.buildFence builder (rawOrdering ordering) (if singleThread then 1 else 0) name)
+
+export
+buildAtomicRMW : Builder -> AtomicRMWOp -> Value -> Value -> AtomicOrdering -> Bool -> IO Value
+buildAtomicRMW (MkBuilder builder) op (MkValue pointer) (MkValue value) ordering singleThread =
+  MkValue <$> (primIO $ Raw.buildAtomicRMW builder (rawRMWOp op) pointer value
+                 (rawOrdering ordering) (if singleThread then 1 else 0))
+
+export
+buildAtomicCmpXchg : Builder -> Value -> Value -> Value -> AtomicOrdering -> AtomicOrdering -> Bool -> IO Value
+buildAtomicCmpXchg (MkBuilder builder) (MkValue pointer) (MkValue compared) (MkValue replacement)
+                   success failure singleThread =
+  MkValue <$> (primIO $ Raw.buildAtomicCmpXchg builder pointer compared replacement
+                 (rawOrdering success) (rawOrdering failure) (if singleThread then 1 else 0))
+
+export
+intrinsicDeclaration : Module -> String -> List LLVMType -> IO (LLVMResult Value)
+intrinsicDeclaration (MkModule mod) name overloadTypes = do
+  length <- byteLength name
+  intrinsic <- primIO $ Raw.lookupIntrinsicID name length
+  if intrinsic == 0
+    then pure $ Left $ simpleError "intrinsicDeclaration" ("unknown LLVM intrinsic: " ++ name)
+    else withRefArray (map toRawType overloadTypes) $ \types, count => do
+      value <- primIO $ Raw.getIntrinsicDeclaration mod intrinsic types (cast count)
+      pure $ if RawTypes.isNullRef value
+        then Left $ simpleError "intrinsicDeclaration" ("could not declare LLVM intrinsic: " ++ name)
+        else Right (MkValue value)
 
 export
 buildSelect : Builder -> Value -> Value -> Value -> String -> IO Value

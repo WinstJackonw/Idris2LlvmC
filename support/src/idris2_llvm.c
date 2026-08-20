@@ -1,6 +1,7 @@
 #include "idris2_llvm.h"
 
 #include "llvm-c/Core.h"
+#include "llvm-c/Disassembler.h"
 #include "llvm-c/Error.h"
 #include "llvm-c/Target.h"
 
@@ -55,6 +56,59 @@ EXPORT void idris2_llvm_i64_array_set(int64_t *array, uint32_t index,
 
 EXPORT void idris2_llvm_i64_array_free(int64_t *array) { free(array); }
 
+EXPORT uint8_t *idris2_llvm_u8_array_new(uint32_t count) {
+  return calloc(count == 0 ? 1 : count, sizeof(uint8_t));
+}
+
+EXPORT void idris2_llvm_u8_array_set(uint8_t *array, uint32_t index,
+                                     uint8_t value) {
+  array[index] = value;
+}
+
+EXPORT void idris2_llvm_u8_array_free(uint8_t *array) { free(array); }
+
+EXPORT LLVMDisasmContextRef idris2_llvm_create_disasm(const char *triple,
+                                                       const char *cpu,
+                                                       const char *features) {
+  return LLVMCreateDisasmCPUFeatures(triple, cpu, features, NULL, 0, NULL,
+                                     NULL);
+}
+
+EXPORT char *idris2_llvm_string_copy_len(const char *value, uint64_t length) {
+  char *copy = malloc((size_t)length + 1);
+  if (copy == NULL)
+    return NULL;
+  if (value != NULL && length != 0)
+    memcpy(copy, value, (size_t)length);
+  copy[length] = '\0';
+  return copy;
+}
+
+EXPORT void idris2_llvm_string_copy_free(char *value) { free(value); }
+
+EXPORT uint64_t *idris2_llvm_u64_array_new(uint32_t count) {
+  return calloc(count == 0 ? 1 : count, sizeof(uint64_t));
+}
+
+EXPORT uint64_t idris2_llvm_u64_array_get(uint64_t *array, uint32_t index) {
+  return array[index];
+}
+
+EXPORT void idris2_llvm_u64_array_free(uint64_t *array) { free(array); }
+
+EXPORT uint64_t idris2_llvm_call_jit_u64_0(uint64_t address) {
+  return ((uint64_t (*)(void))(uintptr_t)address)();
+}
+
+EXPORT uint64_t idris2_llvm_call_jit_u64_1(uint64_t address, uint64_t first) {
+  return ((uint64_t (*)(uint64_t))(uintptr_t)address)(first);
+}
+
+EXPORT uint64_t idris2_llvm_call_jit_u64_2(uint64_t address, uint64_t first,
+                                           uint64_t second) {
+  return ((uint64_t (*)(uint64_t, uint64_t))(uintptr_t)address)(first, second);
+}
+
 static void get_version(unsigned *major, unsigned *minor, unsigned *patch) {
   LLVMGetVersion(major, minor, patch);
 }
@@ -99,6 +153,10 @@ EXPORT void idris2_llvm_initialize_all_asm_parsers(void) {
 
 EXPORT void idris2_llvm_initialize_all_asm_printers(void) {
   LLVMInitializeAllAsmPrinters();
+}
+
+EXPORT void idris2_llvm_initialize_all_disassemblers(void) {
+  LLVMInitializeAllDisassemblers();
 }
 
 EXPORT int32_t idris2_llvm_initialize_native_target(void) {

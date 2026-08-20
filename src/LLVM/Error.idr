@@ -9,6 +9,10 @@ record LLVMError where
   message : String
 
 public export
+LLVMResult : Type -> Type
+LLVMResult a = Either LLVMError a
+
+public export
 Show LLVMError where
   show error = error.operation ++ ": " ++ error.message
 
@@ -19,4 +23,3 @@ Eq LLVMError where
 export
 simpleError : String -> String -> LLVMError
 simpleError = MkLLVMError
-

@@ -168,6 +168,47 @@ llvmAtomicAcquireRelease = 6
 public export llvmAtomicSequentiallyConsistent : LLVMAtomicOrdering
 llvmAtomicSequentiallyConsistent = 7
 
+public export LLVMAtomicRMWBinOp : Type
+LLVMAtomicRMWBinOp = Int32
+
+public export
+llvmAtomicRMWXchg, llvmAtomicRMWAdd, llvmAtomicRMWSub, llvmAtomicRMWAnd,
+  llvmAtomicRMWNand, llvmAtomicRMWOr, llvmAtomicRMWXor, llvmAtomicRMWMax,
+  llvmAtomicRMWMin, llvmAtomicRMWUMax, llvmAtomicRMWUMin, llvmAtomicRMWFAdd,
+  llvmAtomicRMWFSub, llvmAtomicRMWFMax, llvmAtomicRMWFMin, llvmAtomicRMWUIncWrap,
+  llvmAtomicRMWUDecWrap, llvmAtomicRMWUSubCond, llvmAtomicRMWUSubSat,
+  llvmAtomicRMWFMaximum, llvmAtomicRMWFMinimum : LLVMAtomicRMWBinOp
+llvmAtomicRMWXchg = 0
+llvmAtomicRMWAdd = 1
+llvmAtomicRMWSub = 2
+llvmAtomicRMWAnd = 3
+llvmAtomicRMWNand = 4
+llvmAtomicRMWOr = 5
+llvmAtomicRMWXor = 6
+llvmAtomicRMWMax = 7
+llvmAtomicRMWMin = 8
+llvmAtomicRMWUMax = 9
+llvmAtomicRMWUMin = 10
+llvmAtomicRMWFAdd = 11
+llvmAtomicRMWFSub = 12
+llvmAtomicRMWFMax = 13
+llvmAtomicRMWFMin = 14
+llvmAtomicRMWUIncWrap = 15
+llvmAtomicRMWUDecWrap = 16
+llvmAtomicRMWUSubCond = 17
+llvmAtomicRMWUSubSat = 18
+llvmAtomicRMWFMaximum = 19
+llvmAtomicRMWFMinimum = 20
+
+public export LLVMTailCallKind : Type
+LLVMTailCallKind = Int32
+
+public export llvmTailCallNone, llvmTailCall, llvmMustTailCall, llvmNoTailCall : LLVMTailCallKind
+llvmTailCallNone = 0
+llvmTailCall = 1
+llvmMustTailCall = 2
+llvmNoTailCall = 3
+
 public export LLVMDIFlags : Type
 LLVMDIFlags = Bits32
 

@@ -125,6 +125,12 @@ vectorType : TypeRef -> Bits32 -> PrimIO TypeRef
 export %foreign (llvm "LLVMScalableVectorType")
 scalableVectorType : TypeRef -> Bits32 -> PrimIO TypeRef
 
+export %foreign (llvm "LLVMGetElementType")
+getElementType : TypeRef -> PrimIO TypeRef
+
+export %foreign (llvm "LLVMGetVectorSize")
+getVectorSize : TypeRef -> PrimIO Bits32
+
 export %foreign (llvm "LLVMFunctionType")
 functionType : TypeRef -> AnyPtr -> Bits32 -> Int32 -> PrimIO TypeRef
 
@@ -173,8 +179,29 @@ constVector : AnyPtr -> Bits32 -> PrimIO ValueRef
 export %foreign (llvm "LLVMTypeOf")
 typeOf : ValueRef -> PrimIO TypeRef
 
+export %foreign (llvm "LLVMGlobalGetValueType")
+globalValueType : ValueRef -> PrimIO TypeRef
+
 export %foreign (llvm "LLVMGetValueKind")
 getValueKind : ValueRef -> PrimIO Int32
+
+export %foreign (llvm "LLVMGetEnumAttributeKindForName")
+getEnumAttributeKindForName : String -> Bits64 -> PrimIO Bits32
+
+export %foreign (llvm "LLVMCreateEnumAttribute")
+createEnumAttribute : ContextRef -> Bits32 -> Bits64 -> PrimIO AttributeRef
+
+export %foreign (llvm "LLVMCreateStringAttribute")
+createStringAttribute : ContextRef -> String -> Bits32 -> String -> Bits32 -> PrimIO AttributeRef
+
+export %foreign (llvm "LLVMAddAttributeAtIndex")
+addAttributeAtIndex : ValueRef -> Bits32 -> AttributeRef -> PrimIO ()
+
+export %foreign (llvm "LLVMRemoveEnumAttributeAtIndex")
+removeEnumAttributeAtIndex : ValueRef -> Bits32 -> Bits32 -> PrimIO ()
+
+export %foreign (llvm "LLVMRemoveStringAttributeAtIndex")
+removeStringAttributeAtIndex : ValueRef -> Bits32 -> String -> Bits32 -> PrimIO ()
 
 export %foreign (llvm "LLVMGetValueName2")
 getValueName : ValueRef -> AnyPtr -> PrimIO (Ptr String)
@@ -211,6 +238,9 @@ setFunctionCallConv : ValueRef -> Bits32 -> PrimIO ()
 
 export %foreign (llvm "LLVMGetFunctionCallConv")
 getFunctionCallConv : ValueRef -> PrimIO Bits32
+
+export %foreign (llvm "LLVMSetPersonalityFn")
+setPersonalityFn : ValueRef -> ValueRef -> PrimIO ()
 
 export %foreign (llvm "LLVMAddGlobal")
 addGlobal : ModuleRef -> TypeRef -> String -> PrimIO ValueRef
@@ -251,6 +281,12 @@ getFirstBasicBlock : ValueRef -> PrimIO BasicBlockRef
 export %foreign (llvm "LLVMGetNextBasicBlock")
 getNextBasicBlock : BasicBlockRef -> PrimIO BasicBlockRef
 
+export %foreign (llvm "LLVMGetFirstInstruction")
+getFirstInstruction : BasicBlockRef -> PrimIO ValueRef
+
+export %foreign (llvm "LLVMGetNextInstruction")
+getNextInstruction : ValueRef -> PrimIO ValueRef
+
 export %foreign (llvm "LLVMGetBasicBlockTerminator")
 getBasicBlockTerminator : BasicBlockRef -> PrimIO ValueRef
 
@@ -286,6 +322,21 @@ buildCondBr : BuilderRef -> ValueRef -> BasicBlockRef -> BasicBlockRef -> PrimIO
 
 export %foreign (llvm "LLVMBuildUnreachable")
 buildUnreachable : BuilderRef -> PrimIO ValueRef
+
+export %foreign (llvm "LLVMBuildInvoke2")
+buildInvoke : BuilderRef -> TypeRef -> ValueRef -> AnyPtr -> Bits32 -> BasicBlockRef -> BasicBlockRef -> String -> PrimIO ValueRef
+
+export %foreign (llvm "LLVMBuildLandingPad")
+buildLandingPad : BuilderRef -> TypeRef -> ValueRef -> Bits32 -> String -> PrimIO ValueRef
+
+export %foreign (llvm "LLVMAddClause")
+addClause : ValueRef -> ValueRef -> PrimIO ()
+
+export %foreign (llvm "LLVMSetCleanup")
+setCleanup : ValueRef -> Int32 -> PrimIO ()
+
+export %foreign (llvm "LLVMBuildResume")
+buildResume : BuilderRef -> ValueRef -> PrimIO ValueRef
 
 export %foreign (llvm "LLVMBuildSwitch")
 buildSwitch : BuilderRef -> ValueRef -> BasicBlockRef -> Bits32 -> PrimIO ValueRef
@@ -446,6 +497,21 @@ buildAddrSpaceCast : BuilderRef -> ValueRef -> TypeRef -> String -> PrimIO Value
 export %foreign (llvm "LLVMBuildCall2")
 buildCall : BuilderRef -> TypeRef -> ValueRef -> AnyPtr -> Bits32 -> String -> PrimIO ValueRef
 
+export %foreign (llvm "LLVMSetInstructionCallConv")
+setInstructionCallConv : ValueRef -> Bits32 -> PrimIO ()
+
+export %foreign (llvm "LLVMGetInstructionCallConv")
+getInstructionCallConv : ValueRef -> PrimIO Bits32
+
+export %foreign (llvm "LLVMSetTailCall")
+setTailCall : ValueRef -> Int32 -> PrimIO ()
+
+export %foreign (llvm "LLVMGetTailCallKind")
+getTailCallKind : ValueRef -> PrimIO LLVMTailCallKind
+
+export %foreign (llvm "LLVMSetTailCallKind")
+setTailCallKind : ValueRef -> LLVMTailCallKind -> PrimIO ()
+
 export %foreign (llvm "LLVMBuildSelect")
 buildSelect : BuilderRef -> ValueRef -> ValueRef -> ValueRef -> String -> PrimIO ValueRef
 
@@ -475,6 +541,66 @@ setOrdering : ValueRef -> LLVMAtomicOrdering -> PrimIO ()
 
 export %foreign (llvm "LLVMBuildFence")
 buildFence : BuilderRef -> LLVMAtomicOrdering -> Int32 -> String -> PrimIO ValueRef
+
+export %foreign (llvm "LLVMBuildAtomicRMW")
+buildAtomicRMW : BuilderRef -> LLVMAtomicRMWBinOp -> ValueRef -> ValueRef -> LLVMAtomicOrdering -> Int32 -> PrimIO ValueRef
+
+export %foreign (llvm "LLVMBuildAtomicCmpXchg")
+buildAtomicCmpXchg : BuilderRef -> ValueRef -> ValueRef -> ValueRef -> LLVMAtomicOrdering -> LLVMAtomicOrdering -> Int32 -> PrimIO ValueRef
+
+export %foreign (llvm "LLVMIsAArgument")
+isAArgument : ValueRef -> PrimIO ValueRef
+
+export %foreign (llvm "LLVMIsAFunction")
+isAFunction : ValueRef -> PrimIO ValueRef
+
+export %foreign (llvm "LLVMIsAGlobalVariable")
+isAGlobalVariable : ValueRef -> PrimIO ValueRef
+
+export %foreign (llvm "LLVMIsAInstruction")
+isAInstruction : ValueRef -> PrimIO ValueRef
+
+export %foreign (llvm "LLVMIsACallInst")
+isACallInst : ValueRef -> PrimIO ValueRef
+
+export %foreign (llvm "LLVMIsAInvokeInst")
+isAInvokeInst : ValueRef -> PrimIO ValueRef
+
+export %foreign (llvm "LLVMIsALandingPadInst")
+isALandingPadInst : ValueRef -> PrimIO ValueRef
+
+export %foreign (llvm "LLVMIsAPHINode")
+isAPHINode : ValueRef -> PrimIO ValueRef
+
+export %foreign (llvm "LLVMIsALoadInst")
+isALoadInst : ValueRef -> PrimIO ValueRef
+
+export %foreign (llvm "LLVMIsAStoreInst")
+isAStoreInst : ValueRef -> PrimIO ValueRef
+
+export %foreign (llvm "LLVMIsABranchInst")
+isABranchInst : ValueRef -> PrimIO ValueRef
+
+export %foreign (llvm "LLVMIsAReturnInst")
+isAReturnInst : ValueRef -> PrimIO ValueRef
+
+export %foreign (llvm "LLVMIsAAllocaInst")
+isAAllocaInst : ValueRef -> PrimIO ValueRef
+
+export %foreign (llvm "LLVMIsAConstantInt")
+isAConstantInt : ValueRef -> PrimIO ValueRef
+
+export %foreign (llvm "LLVMIsAConstantFP")
+isAConstantFP : ValueRef -> PrimIO ValueRef
+
+export %foreign (llvm "LLVMIsAConstantExpr")
+isAConstantExpr : ValueRef -> PrimIO ValueRef
+
+export %foreign (llvm "LLVMLookupIntrinsicID")
+lookupIntrinsicID : String -> Bits64 -> PrimIO Bits32
+
+export %foreign (llvm "LLVMGetIntrinsicDeclaration")
+getIntrinsicDeclaration : ModuleRef -> Bits32 -> AnyPtr -> Bits64 -> PrimIO ValueRef
 
 export %foreign (llvm "LLVMMDStringInContext2")
 mdStringInContext : ContextRef -> String -> Bits64 -> PrimIO MetadataRef
