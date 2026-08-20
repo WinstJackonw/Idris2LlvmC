@@ -31,3 +31,20 @@ for link in "${llvm_link}" "${llvm_platform_link}"; do
     exit 2
   fi
 done
+
+lto_dylib_path="$(<"${support_dir}/build/lto-dylib-path")"
+lto_link="${project_dir}/lib/libLTO"
+case "$(uname -s)" in
+  Darwin) lto_platform_link="${lto_link}.dylib" ;;
+  *) lto_platform_link="${lto_link}.so" ;;
+esac
+for link in "${lto_link}" "${lto_platform_link}"; do
+  if [[ -L "${link}" ]]; then
+    ln -sfn "${lto_dylib_path}" "${link}"
+  elif [[ ! -e "${link}" ]]; then
+    ln -s "${lto_dylib_path}" "${link}"
+  else
+    echo "llvm-c: refusing to replace non-symlink ${link}" >&2
+    exit 2
+  fi
+done

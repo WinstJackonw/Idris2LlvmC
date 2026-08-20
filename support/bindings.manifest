@@ -7,3 +7,9 @@ LLVM.Raw.Linker            Linker.h
 LLVM.Raw.Passes            Error.h Transforms/PassBuilder.h
 LLVM.Raw.Target            Target.h TargetMachine.h
 LLVM.Raw.DebugInfo         DebugInfo.h
+LLVM.Raw.ErrorHandling     ErrorHandling.h
+LLVM.Raw.Disassembler      Disassembler.h
+LLVM.Raw.Object            Object.h
+LLVM.Raw.Remarks           Remarks.h
+LLVM.Raw.Orc               Orc.h LLJIT.h OrcEE.h
+LLVM.Raw.LTO               lto.h

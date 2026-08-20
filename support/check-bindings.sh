@@ -9,8 +9,9 @@ case "$(uname -s)" in
   *) shim_library="${project_dir}/lib/libidris2_llvm.so" ;;
 esac
 llvm_library="${project_dir}/lib/libLLVM"
+lto_library="${project_dir}/lib/libLTO"
 
-if [[ ! -f "${shim_library}" || ! -e "${llvm_library}" ]]; then
+if [[ ! -f "${shim_library}" || ! -e "${llvm_library}" || ! -e "${lto_library}" ]]; then
   echo "llvm-c: native shim is missing; run support/build.sh first" >&2
   exit 2
 fi
@@ -27,6 +28,10 @@ rg -o '\(shim "[^"]+"\)' "${project_dir}/src/LLVM" -g '*.idr' \
   | sed 's/^/idris2_llvm_/' \
   | sort -u > "${temporary_dir}/shim-declared"
 
+rg -o '\(lto "[^"]+"\)' "${project_dir}/src/LLVM" -g '*.idr' \
+  | sed 's/.*(lto "//;s/").*//' \
+  | sort -u > "${temporary_dir}/lto-declared"
+
 if [[ "$(uname -s)" == Darwin ]]; then
   nm -gU "${llvm_library}" \
     | sed -n 's/.* _\(LLVM[A-Za-z0-9_]*\)$/\1/p' \
@@ -34,6 +39,9 @@ if [[ "$(uname -s)" == Darwin ]]; then
   nm -gU "${shim_library}" \
     | sed -n 's/.* _\(idris2_llvm_[A-Za-z0-9_]*\)$/\1/p' \
     | sort -u > "${temporary_dir}/shim-exported"
+  nm -gU "${lto_library}" \
+    | sed -En 's/.* _((lto|thinlto)_[A-Za-z0-9_]+)$/\1/p' \
+    | sort -u > "${temporary_dir}/lto-exported"
 else
   nm -D --defined-only "${llvm_library}" \
     | sed -n 's/.* \(LLVM[A-Za-z0-9_]*\)\(@[^ ]*\)\?$/\1/p' \
@@ -41,20 +49,27 @@ else
   nm -D --defined-only "${shim_library}" \
     | sed -n 's/.* \(idris2_llvm_[A-Za-z0-9_]*\)\(@[^ ]*\)\?$/\1/p' \
     | sort -u > "${temporary_dir}/shim-exported"
+  nm -D --defined-only "${lto_library}" \
+    | sed -En 's/.* ((lto|thinlto)_[A-Za-z0-9_]+)(@[^ ]*)?$/\1/p' \
+    | sort -u > "${temporary_dir}/lto-exported"
 fi
 
 comm -23 "${temporary_dir}/llvm-declared" "${temporary_dir}/llvm-exported" \
   > "${temporary_dir}/llvm-missing"
 comm -23 "${temporary_dir}/shim-declared" "${temporary_dir}/shim-exported" \
   > "${temporary_dir}/shim-missing"
+comm -23 "${temporary_dir}/lto-declared" "${temporary_dir}/lto-exported" \
+  > "${temporary_dir}/lto-missing"
 
-if [[ -s "${temporary_dir}/llvm-missing" || -s "${temporary_dir}/shim-missing" ]]; then
+if [[ -s "${temporary_dir}/llvm-missing" || -s "${temporary_dir}/shim-missing" || -s "${temporary_dir}/lto-missing" ]]; then
   echo "llvm-c: Idris declarations without a native export:" >&2
   sed 's/^/  libLLVM: /' "${temporary_dir}/llvm-missing" >&2
   sed 's/^/  shim: /' "${temporary_dir}/shim-missing" >&2
+  sed 's/^/  libLTO: /' "${temporary_dir}/lto-missing" >&2
   exit 1
 fi
 
 llvm_count="$(wc -l < "${temporary_dir}/llvm-declared" | tr -d ' ')"
 shim_count="$(wc -l < "${temporary_dir}/shim-declared" | tr -d ' ')"
-echo "llvm-c: checked ${llvm_count} libLLVM symbols and ${shim_count} shim symbols"
+lto_count="$(wc -l < "${temporary_dir}/lto-declared" | tr -d ' ')"
+echo "llvm-c: checked ${llvm_count} libLLVM, ${lto_count} libLTO, and ${shim_count} shim symbols"

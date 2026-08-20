@@ -20,6 +20,12 @@ if(NOT TARGET LLVM)
     "llvm-c requires LLVM's monolithic shared libLLVM target")
 endif()
 
+find_library(LLVM_LTO_DYLIB NAMES LTO
+  HINTS ${LLVM_LIBRARY_DIRS}
+  NO_DEFAULT_PATH
+  REQUIRED)
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/lto-dylib-path" "${LLVM_LTO_DYLIB}")
+
 add_library(idris2_llvm SHARED src/idris2_llvm.c)
 target_compile_features(idris2_llvm PRIVATE c_std_11)
 target_include_directories(idris2_llvm
